@@ -3,3 +3,4 @@ numpy
 pandas
 matplotlib
 mysql-connector-python
+gunicorn

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Simulation - Monte Carlo</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/simulate.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="input-card">
+            <h2>Inventory Simulation Parameters</h2>
+            <form id="inventory-simulation-form">
+                <div class="input-group">
+                    <label for="initial_inventory">Initial Inventory:</label>
+                    <input type="number" id="initial_inventory" value="500" required>
+                </div>
+                <div class="input-group">
+                    <label for="avg_daily_demand">Average Daily Demand:</label>
+                    <input type="number" id="avg_daily_demand" value="50" required>
+                </div>
+                <div class="input-group">
+                    <label for="demand_volatility">Demand Volatility (%):</label>
+                    <input type="number" id="demand_volatility" value="10" required>
+                </div>
+                <div class="input-group">
+                    <label for="lead_time_days">Lead Time for Orders (days):</label>
+                    <input type="number" id="lead_time_days" value="7" required>
+                </div>
+                <div class="input-group">
+                    <label for="num_days">Number of Days to Simulate:</label>
+                    <input type="number" id="num_days" value="90" required>
+                </div>
+                <div class="input-group">
+                    <label for="num_simulations">Number of Simulations:</label>
+                    <input type="number" id="num_simulations" value="1000" required>
+                </div>
+                <button type="submit" class="ripple-btn">Run Inventory Simulation</button>
+            </form>
+        </div>
+        <div class="result-area">
+            <div class="chart-container">
+                <canvas id="inventory-chart"></canvas>
+            </div>
+            <div class="summary-cards" id="inventory-summary"></div>
+        </div>
+    </div>
+    <script src="/static/js/inventory.js"></script>
+</body>
+</html>

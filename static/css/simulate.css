@@ -1,0 +1,166 @@
+.input-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    padding: 2rem;
+    border-radius: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    width: 80%;
+    max-width: 500px;
+    margin-bottom: 2rem;
+}
+
+.input-group {
+    margin-bottom: 1rem;
+    text-align: left;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 0.5rem;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+}
+
+.ripple-btn {
+    padding: 15px 30px;
+    font-size: 1.2rem;
+    background: #7F00FF;
+    border: none;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-radius: 50px;
+    position: relative;
+    overflow: hidden;
+}
+
+.ripple-btn:after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 5px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.5);
+    opacity: 0;
+    border-radius: 100%;
+    transform: scale(1, 1) translate(-50%);
+    transform-origin: 50% 50%;
+}
+
+.ripple-btn:focus:not(:active)::after {
+    animation: ripple 1s ease-out;
+}
+
+@keyframes ripple {
+    0% {
+        transform: scale(0, 0);
+        opacity: 1;
+    }
+    20% {
+        transform: scale(25, 25);
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        transform: scale(40, 40);
+    }
+}
+
+.result-area {
+    width: 80%;
+    max-width: 1000px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.chart-container {
+    width: 100%;
+    max-width: 900px;
+    height: 450px;
+    margin-bottom: 2rem;
+    animation: fadeIn 1s ease-in-out;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 15px;
+    padding: 1rem;
+}
+
+.summary-cards {
+    display: flex;
+    justify-content: space-around;
+    width: 100%;
+}
+
+.card {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 1rem;
+    border-radius: 10px;
+    text-align: center;
+    width: 200px;
+    opacity: 0;
+    animation: fadeIn 0.5s forwards;
+}
+
+#avg-card { animation-delay: 0.5s; }
+#min-card { animation-delay: 1s; }
+#max-card { animation-delay: 1.5s; }
+#prob-card { animation-delay: 2s; }
+
+.day-checker {
+    margin-top: 2rem;
+    width: 100%;
+    max-width: 500px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    padding: 2rem;
+    border-radius: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    text-align: center;
+}
+
+.day-checker .input-group {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.day-checker input {
+    width: 50%;
+    margin-right: 1rem;
+}
+
+#day-details {
+    margin-top: 1.5rem;
+    font-size: 1.1rem;
+}
+
+#day-details p {
+    margin: 0.5rem 0;
+}
+
+#day-details .error {
+    color: #ffb3b3;
+}
+
+.risk-analysis-cards {
+    display: flex;
+    justify-content: space-around;
+    width: 100%;
+    margin-top: 2rem;
+}
+
+.risk-analysis-cards .card {
+    width: 250px;
+}
+
+#loss-prob-card { animation-delay: 2.5s; }
+#ci-card { animation-delay: 3s; }
+#var-card { animation-delay: 3.5s; }

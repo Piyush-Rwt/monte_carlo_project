@@ -1,0 +1,85 @@
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    color: white;
+    background: linear-gradient(120deg, #00DBDE, #FC00FF);
+    background-size: 200% 200%;
+    animation: gradientMove 10s ease infinite;
+    overflow-x: hidden;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 100vh;
+    padding: 2rem 0;
+    box-sizing: border-box;
+    text-align: center;
+    animation: fadeIn 1s ease-in-out;
+}
+
+h1 {
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+}
+
+p {
+    font-size: 1.2rem;
+    margin-bottom: 2rem;
+}
+
+.glowing-btn {
+    padding: 15px 30px;
+    font-size: 1.2rem;
+    background: transparent;
+    border: 2px solid white;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-radius: 50px;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.glowing-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+}
+
+@keyframes gradientMove {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.admin-link-container {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    z-index: 10;
+}
+
+.admin-link-container a {
+    color: white;
+    text-decoration: none;
+    font-size: 1rem;
+    padding: 0.5rem 1rem;
+    border: 1px solid white;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+}
+
+.admin-link-container a:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.button-container {
+    display: flex;
+    gap: 1rem;
+}

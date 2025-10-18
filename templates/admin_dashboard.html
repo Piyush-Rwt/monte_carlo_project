@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/simulate.css">
+    <style>
+        .container {
+            justify-content: flex-start;
+            padding-top: 5rem; /* Add padding to the top */
+        }
+        h2 {
+            margin-bottom: 1rem;
+        }
+        .table-container {
+            width: 90%;
+            margin-top: 2rem;
+            background: rgba(0,0,0,0.5);
+            padding: 1rem;
+            border-radius: 15px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            color: white;
+        }
+        th, td {
+            border: 1px solid white;
+            padding: 0.5rem;
+            text-align: left;
+        }
+        th {
+            background: rgba(255,255,255,0.2);
+        }
+        .delete-form {
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-link-container">
+        <a href="/admin/logout">Logout</a>
+    </div>
+
+    <div class="container">
+        <h1>Admin Dashboard</h1>
+
+        <!-- Stock Simulations Table -->
+        <div class="table-container">
+            <h2>Stock Simulations</h2>
+            {% if stock_data %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Initial Price</th>
+                        <th>Annual Volatility</th>
+                        <th>Days</th>
+                        <th>Simulations</th>
+                        <th>Avg Final Price</th>
+                        <th>Prob. of Loss</th>
+                        <th>VaR (95%)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in stock_data %}
+                    <tr>
+                        <td>{{ row.simulation_timestamp }}</td>
+                        <td>{{ row.initial_price }}</td>
+                        <td>{{ row.annual_volatility }}%</td>
+                        <td>{{ row.num_days }}</td>
+                        <td>{{ row.num_simulations }}</td>
+                        <td>${{ "%.2f"|format(row.avg_final_price) }}</td>
+                        <td>{{ "%.2f"|format(row.prob_of_loss) }}%</td>
+                        <td>${{ "%.2f"|format(row.value_at_risk) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>No stock simulation data found.</p>
+            {% endif %}
+            <form class="delete-form" action="/admin/delete/stock_simulations" method="POST">
+                <button type="submit" class="ripple-btn" onclick="return confirm('Are you sure you want to delete all stock simulation data?');">Delete All Stock Data</button>
+            </form>
+        </div>
+
+        <!-- Inventory Simulations Table -->
+        <div class="table-container">
+            <h2>Inventory Simulations</h2>
+            {% if inventory_data %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Initial Inv.</th>
+                        <th>Avg. Demand</th>
+                        <th>Demand Vol.</th>
+                        <th>Lead Time</th>
+                        <th>Sim. Days</th>
+                        <th>Prob. of Stockout</th>
+                        <th>Avg. Final Inv.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in inventory_data %}
+                    <tr>
+                        <td>{{ row.simulation_timestamp }}</td>
+                        <td>{{ row.initial_inventory }}</td>
+                        <td>{{ row.avg_daily_demand }}</td>
+                        <td>{{ row.demand_volatility }}%</td>
+                        <td>{{ row.lead_time_days }}</td>
+                        <td>{{ row.num_days }}</td>
+                        <td>{{ "%.2f"|format(row.prob_of_stockout) }}%</td>
+                        <td>{{ "%.2f"|format(row.avg_final_inventory) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>No inventory simulation data found.</p>
+            {% endif %}
+            <form class="delete-form" action="/admin/delete/inventory_simulations" method="POST">
+                <button type="submit" class="ripple-btn" onclick="return confirm('Are you sure you want to delete all inventory simulation data?');">Delete All Inventory Data</button>
+            </form>
+        </div>
+
+    </div>
+</body>
+</html>

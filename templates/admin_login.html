@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/simulate.css"> <!-- Re-use for card style -->
+</head>
+<body>
+    <div class="container">
+        <div class="input-card" style="width: 400px;">
+            <h2>Admin Login</h2>
+            <form action="/admin/login" method="POST">
+                <div class="input-group">
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit" class="ripple-btn">Login</button>
+            </form>
+            <!-- Optional: Display error messages -->
+            {% with messages = get_flashed_messages() %}
+              {% if messages %}
+                <div class="error-message" style="margin-top: 1rem; color: #ffb3b3;">
+                  {{ messages[0] }}
+                </div>
+              {% endif %}
+            {% endwith %}
+        </div>
+    </div>
+</body>
+</html>

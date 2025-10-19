@@ -3,14 +3,15 @@ import numpy as np
 import pandas as pd
 import math
 
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 app = Flask(__name__)
 app.secret_key = 'your_very_secret_key' # Replace with a real secret key
 
 # --- Database Configuration ---
-app.config['MYSQL_HOST'] = 'localhost'
-app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = 'Vlpg@123' # <-- ENTER YOUR PASSWORD HERE
-app.config['MYSQL_DB'] = 'monte_carlo_database'
 
 def run_monte_carlo(initial_price, volatility, num_days, num_simulations):
     simulations = np.zeros((num_days + 1, num_simulations))
@@ -180,10 +181,11 @@ import mysql.connector
 # --- Database Connection Helper ---
 def get_db_connection():
     conn = mysql.connector.connect(
-        host=app.config['MYSQL_HOST'],
-        user=app.config['MYSQL_USER'],
-        password=app.config['MYSQL_PASSWORD'],
-        database=app.config['MYSQL_DB']
+        host=os.getenv("DB_HOST"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASS"),
+        database=os.getenv("DB_NAME"),
+        port=os.getenv("DB_PORT")
     )
     return conn
 

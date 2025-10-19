@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash
+import psycopg2
 import numpy as np
 import pandas as pd
 import math
@@ -180,13 +181,24 @@ import mysql.connector
 
 # --- Database Connection Helper ---
 def get_db_connection():
-    conn = mysql.connector.connect(
-        host=os.getenv("DB_HOST"),
-        user=os.getenv("DB_USER"),
-        password=os.getenv("DB_PASS"),
-        database=os.getenv("DB_NAME"),
-        port=os.getenv("DB_PORT")
-    )
+    if os.getenv("RENDER") == "true":
+        # Use Render PostgreSQL
+        conn = psycopg2.connect(
+            host=os.getenv("RENDER_DB_HOST"),
+            database=os.getenv("RENDER_DB_NAME"),
+            user=os.getenv("RENDER_DB_USER"),
+            password=os.getenv("RENDER_DB_PASSWORD"),
+            port=os.getenv("RENDER_DB_PORT")
+        )
+    else:
+        # Use local MySQL
+        conn = mysql.connector.connect(
+            host=os.getenv("DB_HOST"),
+            user=os.getenv("DB_USER"),
+            password=os.getenv("DB_PASSWORD"),
+            database=os.getenv("DB_NAME"),
+            port=os.getenv("DB_PORT")
+        )
     return conn
 
 # --- Admin Panel Routes ---

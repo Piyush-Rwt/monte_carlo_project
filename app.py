@@ -182,11 +182,13 @@ import mysql.connector
 # --- Database Connection Helper ---
 def get_db_connection():
     if os.getenv("RENDER") == "true":
-        # Use Render PostgreSQL
         db_url = os.getenv("RENDER_DB_URL")
+
         if db_url and db_url.startswith("postgresql://"):
+            # Directly use Render full URL if available
             conn = psycopg2.connect(db_url)
         else:
+            # Fallback to manual connection info
             conn = psycopg2.connect(
                 host=os.getenv("RENDER_DB_HOST"),
                 database=os.getenv("RENDER_DB_NAME"),
@@ -195,14 +197,14 @@ def get_db_connection():
                 port=os.getenv("RENDER_DB_PORT")
             )
     else:
-        # Use local MySQL
+        # Local MySQL for local development
         conn = mysql.connector.connect(
-            host=os.getenv("DB_HOST"),
-            user=os.getenv("DB_USER"),
-            password=os.getenv("DB_PASSWORD"),
-            database=os.getenv("DB_NAME"),
-            port=os.getenv("DB_PORT")
+            host="localhost",
+            user="root",
+            password="",
+            database="montecarlo_db"
         )
+
     return conn
 
 # --- Admin Panel Routes ---

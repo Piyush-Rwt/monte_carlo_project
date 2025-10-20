@@ -1,18 +1,20 @@
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash
-import psycopg2
 import numpy as np
 import pandas as pd
 import math
-
-import os
 from dotenv import load_dotenv
+import os
 
-load_dotenv()
+load_dotenv()  # this reads the .env file
 
 app = Flask(__name__)
 app.secret_key = 'your_very_secret_key' # Replace with a real secret key
 
 # --- Database Configuration ---
+app.config['MYSQL_HOST'] = 'localhost'
+app.config['MYSQL_USER'] = 'root'
+app.config['MYSQL_PASSWORD'] = 'Vlpg@123' 
+app.config['MYSQL_DB'] = 'monte_carlo_database'
 
 def run_monte_carlo(initial_price, volatility, num_days, num_simulations):
     simulations = np.zeros((num_days + 1, num_simulations))
@@ -182,13 +184,11 @@ import mysql.connector
 # --- Database Connection Helper ---
 def get_db_connection():
     if os.getenv("RENDER") == "true":
+        # --- Render PostgreSQL connection ---
         db_url = os.getenv("RENDER_DB_URL")
-
         if db_url and db_url.startswith("postgresql://"):
-            # Directly use Render full URL if available
             conn = psycopg2.connect(db_url)
         else:
-            # Fallback to manual connection info
             conn = psycopg2.connect(
                 host=os.getenv("RENDER_DB_HOST"),
                 database=os.getenv("RENDER_DB_NAME"),
@@ -197,14 +197,13 @@ def get_db_connection():
                 port=os.getenv("RENDER_DB_PORT")
             )
     else:
-        # Local MySQL for local development
+        # --- Local MySQL connection ---
         conn = mysql.connector.connect(
-            host="localhost",
-            user="root",
-            password="",
-            database="montecarlo_db"
+            host=os.getenv("LOCAL_DB_HOST"),
+            user=os.getenv("LOCAL_DB_USER"),
+            password=os.getenv("LOCAL_DB_PASSWORD"),
+            database=os.getenv("LOCAL_DB_NAME")
         )
-
     return conn
 
 # --- Admin Panel Routes ---

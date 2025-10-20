@@ -183,13 +183,17 @@ import mysql.connector
 def get_db_connection():
     if os.getenv("RENDER") == "true":
         # Use Render PostgreSQL
-        conn = psycopg2.connect(
-            host=os.getenv("RENDER_DB_HOST"),
-            database=os.getenv("RENDER_DB_NAME"),
-            user=os.getenv("RENDER_DB_USER"),
-            password=os.getenv("RENDER_DB_PASSWORD"),
-            port=os.getenv("RENDER_DB_PORT")
-        )
+        db_url = os.getenv("RENDER_DB_URL")
+        if db_url and db_url.startswith("postgresql://"):
+            conn = psycopg2.connect(db_url)
+        else:
+            conn = psycopg2.connect(
+                host=os.getenv("RENDER_DB_HOST"),
+                database=os.getenv("RENDER_DB_NAME"),
+                user=os.getenv("RENDER_DB_USER"),
+                password=os.getenv("RENDER_DB_PASSWORD"),
+                port=os.getenv("RENDER_DB_PORT")
+            )
     else:
         # Use local MySQL
         conn = mysql.connector.connect(

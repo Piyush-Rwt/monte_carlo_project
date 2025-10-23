@@ -184,9 +184,9 @@ import mysql.connector
 
 # --- Database Connection Helper ---
 def get_db_connection():
-    db_url = os.getenv("DATABASE_URL")
-    if db_url and db_url.startswith("postgres"):
+    if os.getenv("RENDER") == "true":
         # --- Render PostgreSQL connection ---
+        db_url = os.getenv("DATABASE_URL")
         conn = psycopg2.connect(db_url)
     else:
         # --- Local MySQL connection ---

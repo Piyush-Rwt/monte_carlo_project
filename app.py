@@ -57,6 +57,29 @@ def stock_simulation_page():
 def inventory_simulation_page():
     return render_template('inventory.html')
 
+import psycopg2.extras
+
+# --- Database Connection Helper ---
+def get_db_connection():
+    conn = None
+    if os.getenv("RENDER") == "true":
+        # --- Render PostgreSQL connection ---
+        db_url = os.getenv("DATABASE_URL")
+        if not db_url:
+            raise ValueError("DATABASE_URL is not set in the Render environment.")
+        conn = psycopg2.connect(db_url)
+        cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    else:
+        # --- Local MySQL connection ---
+        conn = mysql.connector.connect(
+            host=app.config['MYSQL_HOST'],
+            user=app.config['MYSQL_USER'],
+            password=app.config['MYSQL_PASSWORD'],
+            database=app.config['MYSQL_DB']
+        )
+        cursor = conn.cursor(dictionary=True)
+    return conn, cursor
+
 @app.route('/simulate', methods=['POST'])
 def simulate():
     data = request.get_json()
@@ -72,8 +95,7 @@ def simulate():
 
     # Save results to database
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        conn, cursor = get_db_connection()
         sql = """INSERT INTO stock_simulations (initial_price, annual_volatility, num_days, num_simulations, target_price, avg_final_price, prob_of_loss, confidence_interval_lower, confidence_interval_upper, value_at_risk) 
                  VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
         val = (initial_price, annual_volatility * 100, num_days, num_simulations, target_price, avg_final_price, prob_of_loss, ci_90['lower'], ci_90['upper'], var_95)
@@ -96,53 +118,6 @@ def simulate():
     })
 
 
-def run_inventory_simulation(initial_inventory, avg_daily_demand, demand_volatility, lead_time_days, num_days, num_simulations):
-    all_inventory_levels = np.zeros((num_days + 1, num_simulations))
-    all_inventory_levels[0, :] = initial_inventory
-    total_stockout_days = 0
-
-    for i in range(num_simulations):
-        inventory_levels = list(all_inventory_levels[:, i])
-        pending_orders = {}
-        reorder_point = avg_daily_demand * lead_time_days
-
-        for day in range(1, num_days + 1):
-            # Check for arriving orders
-            if day in pending_orders:
-                inventory_levels[day-1] += pending_orders.pop(day)
-
-            # Simulate demand
-            daily_demand = max(0, np.random.normal(avg_daily_demand, demand_volatility))
-            
-            # Fulfill demand
-            current_inventory = inventory_levels[day-1]
-            if current_inventory >= daily_demand:
-                inventory_levels[day] = current_inventory - daily_demand
-            else:
-                inventory_levels[day] = 0
-                total_stockout_days += 1
-
-            # Reorder policy
-            if inventory_levels[day] < reorder_point and not any(d > day for d in pending_orders.keys()):
-                order_quantity = initial_inventory - inventory_levels[day]
-                arrival_day = day + lead_time_days
-                if arrival_day <= num_days:
-                    pending_orders[arrival_day] = order_quantity
-        
-        all_inventory_levels[:, i] = inventory_levels
-
-    # Analysis
-    final_inventory_levels = all_inventory_levels[-1, :]
-    prob_of_stockout = (total_stockout_days / (num_days * num_simulations)) * 100
-    avg_final_inventory = np.mean(final_inventory_levels)
-    confidence_interval_90 = {
-        'lower': np.percentile(final_inventory_levels, 5),
-        'upper': np.percentile(final_inventory_levels, 95)
-    }
-
-    return all_inventory_levels.tolist(), prob_of_stockout, avg_final_inventory, confidence_interval_90
-
-
 @app.route('/simulate_inventory', methods=['POST'])
 def simulate_inventory():
     data = request.get_json()
@@ -159,8 +134,7 @@ def simulate_inventory():
 
     # Save results to database
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        conn, cursor = get_db_connection()
         sql = """INSERT INTO inventory_simulations (initial_inventory, avg_daily_demand, demand_volatility, lead_time_days, num_days, num_simulations, prob_of_stockout, avg_final_inventory, confidence_interval_lower, confidence_interval_upper) 
                  VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
         val = (initial_inventory, avg_daily_demand, demand_volatility, lead_time_days, num_days, num_simulations, prob_stockout, avg_final, ci_90['lower'], ci_90['upper'])
@@ -178,57 +152,12 @@ def simulate_inventory():
         'confidence_interval_90': ci_90
     })
 
-
-import psycopg2
-import mysql.connector
-
-# --- Database Connection Helper ---
-def get_db_connection():
-    if os.getenv("RENDER") == "true":
-        # --- Render PostgreSQL connection ---
-        db_url = os.getenv("DATABASE_URL")
-        if not db_url:
-            raise ValueError("DATABASE_URL is not set in the Render environment.")
-        conn = psycopg2.connect(db_url)
-    else:
-        # --- Local MySQL connection ---
-        conn = mysql.connector.connect(
-            host=app.config['MYSQL_HOST'],
-            user=app.config['MYSQL_USER'],
-            password=app.config['MYSQL_PASSWORD'],
-            database=app.config['MYSQL_DB']
-        )
-    return conn
-
-# --- Admin Panel Routes ---
-
-@app.route('/admin')
-def admin():
-    if 'logged_in' in session:
-        return redirect(url_for('admin_dashboard'))
-    return render_template('admin_login.html')
-
-@app.route('/admin/login', methods=['POST'])
-def admin_login():
-    if request.form['password'] == os.getenv('ADMIN_PASSWORD'):
-        session['logged_in'] = True
-        return redirect(url_for('admin_dashboard'))
-    else:
-        flash('Wrong password!')
-        return redirect(url_for('admin'))
-
-@app.route('/admin/logout')
-def admin_logout():
-    session.pop('logged_in', None)
-    return redirect(url_for('index'))
-
 @app.route('/admin/dashboard')
 def admin_dashboard():
     if 'logged_in' not in session:
         return redirect(url_for('admin'))
     
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    conn, cursor = get_db_connection()
     
     cursor.execute("SELECT * FROM stock_simulations ORDER BY simulation_timestamp DESC")
     stock_data = cursor.fetchall()
@@ -247,8 +176,7 @@ def delete_data(table):
         return redirect(url_for('admin'))
     
     if table in ['stock_simulations', 'inventory_simulations']:
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        conn, cursor = get_db_connection()
         cursor.execute(f"TRUNCATE TABLE {table}")
         conn.commit()
         cursor.close()

@@ -9,3 +9,14 @@ __pycache__/
 .Python
 env/
 venv/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# Log files
+*.log
+
+# OS-specific
+.DS_Store

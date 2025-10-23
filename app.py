@@ -8,13 +8,13 @@ import os
 load_dotenv()  # this reads the .env file
 
 app = Flask(__name__)
-app.secret_key = 'your_very_secret_key' # Replace with a real secret key
+app.secret_key = os.getenv('SECRET_KEY')
 
 # --- Database Configuration ---
-app.config['MYSQL_HOST'] = 'localhost'
-app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = 'Vlpg@123' 
-app.config['MYSQL_DB'] = 'monte_carlo_database'
+app.config['MYSQL_HOST'] = os.getenv('LOCAL_DB_HOST')
+app.config['MYSQL_USER'] = os.getenv('LOCAL_DB_USER')
+app.config['MYSQL_PASSWORD'] = os.getenv('LOCAL_DB_PASSWORD')
+app.config['MYSQL_DB'] = os.getenv('LOCAL_DB_NAME')
 
 def run_monte_carlo(initial_price, volatility, num_days, num_simulations):
     simulations = np.zeros((num_days + 1, num_simulations))
@@ -179,30 +179,22 @@ def simulate_inventory():
     })
 
 
+import psycopg2
 import mysql.connector
 
 # --- Database Connection Helper ---
 def get_db_connection():
-    if os.getenv("RENDER") == "true":
+    db_url = os.getenv("DATABASE_URL")
+    if db_url and db_url.startswith("postgres"):
         # --- Render PostgreSQL connection ---
-        db_url = os.getenv("RENDER_DB_URL")
-        if db_url and db_url.startswith("postgresql://"):
-            conn = psycopg2.connect(db_url)
-        else:
-            conn = psycopg2.connect(
-                host=os.getenv("RENDER_DB_HOST"),
-                database=os.getenv("RENDER_DB_NAME"),
-                user=os.getenv("RENDER_DB_USER"),
-                password=os.getenv("RENDER_DB_PASSWORD"),
-                port=os.getenv("RENDER_DB_PORT")
-            )
+        conn = psycopg2.connect(db_url)
     else:
         # --- Local MySQL connection ---
         conn = mysql.connector.connect(
-            host=os.getenv("LOCAL_DB_HOST"),
-            user=os.getenv("LOCAL_DB_USER"),
-            password=os.getenv("LOCAL_DB_PASSWORD"),
-            database=os.getenv("LOCAL_DB_NAME")
+            host=app.config['MYSQL_HOST'],
+            user=app.config['MYSQL_USER'],
+            password=app.config['MYSQL_PASSWORD'],
+            database=app.config['MYSQL_DB']
         )
     return conn
 
@@ -216,7 +208,7 @@ def admin():
 
 @app.route('/admin/login', methods=['POST'])
 def admin_login():
-    if request.form['password'] == 'admin':
+    if request.form['password'] == os.getenv('ADMIN_PASSWORD'):
         session['logged_in'] = True
         return redirect(url_for('admin_dashboard'))
     else:

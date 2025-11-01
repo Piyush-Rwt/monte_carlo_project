@@ -164,6 +164,7 @@ def simulate():
             conn.close()
         except Exception as e:
             print(f"❌ Database insert error: {e}")
+            return jsonify({'error': f'Database insert error: {e}'}), 500
 
         return jsonify({
             'simulations': simulations.tolist(),
@@ -215,6 +216,7 @@ def simulate_inventory():
             conn.close()
         except Exception as e:
             print(f"❌ Database insert error: {e}")
+            return jsonify({'error': f'Database insert error: {e}'}), 500
 
         return jsonify({
             'inventory_simulations': inventory_sims,
@@ -244,7 +246,7 @@ def admin():
 @app.route('/admin/logout')
 def admin_logout():
     session.pop('logged_in', None)
-    return redirect(url_for('admin'))
+    return redirect(url_for('index'))
 
 
 @app.route('/admin/dashboard')

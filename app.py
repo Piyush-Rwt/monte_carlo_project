@@ -132,6 +132,23 @@ def simulate():
     })
 
 
+@app.route('/admin', methods=['GET', 'POST'])
+def admin():
+    if request.method == 'POST':
+        password = request.form.get('password')
+        # This is a simple, insecure password check for demonstration purposes.
+        # In a real application, use a proper authentication library and hashed passwords.
+        if password == os.getenv('ADMIN_PASSWORD', 'password'):
+            session['logged_in'] = True
+            return redirect(url_for('admin_dashboard'))
+        else:
+            flash('Invalid password.')
+            return redirect(url_for('admin'))
+    
+    # If GET request or failed login, show the login page
+    return render_template('admin_login.html')
+
+
 @app.route('/admin/dashboard')
 def admin_dashboard():
     if 'logged_in' not in session:

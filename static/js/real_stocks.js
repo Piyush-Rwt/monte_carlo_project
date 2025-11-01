@@ -9,20 +9,28 @@ document.addEventListener('DOMContentLoaded', () => {
             const symbol = button.dataset.symbol;
             resultsSection.style.display = 'block';
 
-            // Fetch simulation data
-            const response = await fetch(`/simulate_real_stock/${symbol}`);
-            const data = await response.json();
+            try {
+                // Fetch simulation data
+                const response = await fetch(`/simulate_real_stock/${symbol}`);
+                const data = await response.json();
 
-            // Update UI
-            document.getElementById('stock-name').textContent = button.textContent;
-            document.getElementById('current-price').textContent = `$${data.current_price.toFixed(2)}`;
-            document.getElementById('confidence-range').textContent = `$${data.confidence_range.lower.toFixed(2)} - $${data.confidence_range.upper.toFixed(2)}`;
-            document.getElementById('prob-of-loss').textContent = `${data.prob_of_loss.toFixed(2)}%`;
-            document.getElementById('risk-level').textContent = data.risk_level;
+                if (response.status !== 200) {
+                    throw new Error(data.error);
+                }
 
-            // Render charts
-            renderHistoricalChart(data.historical_data);
-            renderSimulationChart(data.simulations);
+                // Update UI
+                document.getElementById('stock-name').textContent = button.textContent;
+                document.getElementById('current-price').textContent = `$${data.current_price.toFixed(2)}`;
+                document.getElementById('confidence-range').textContent = `$${data.confidence_range.lower.toFixed(2)} - $${data.confidence_range.upper.toFixed(2)}`;
+                document.getElementById('prob-of-loss').textContent = `${data.prob_of_loss.toFixed(2)}%`;
+                document.getElementById('risk-level').textContent = data.risk_level;
+
+                // Render charts
+                renderHistoricalChart(data.historical_data);
+                renderSimulationChart(data.simulations);
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            }
         });
     });
 

@@ -46,6 +46,8 @@ def get_db_connection():
 
 # --- Monte Carlo Simulation Functions ---
 def run_monte_carlo(initial_price, volatility, num_days, num_simulations):
+    if initial_price <= 0 or volatility <= 0 or num_days <= 0 or num_simulations <= 0:
+        return None
     simulations = np.zeros((num_days + 1, num_simulations))
     simulations[0, :] = initial_price
     for i in range(num_simulations):
@@ -55,6 +57,8 @@ def run_monte_carlo(initial_price, volatility, num_days, num_simulations):
     return simulations
 
 def run_inventory_simulation(initial_inventory, avg_daily_demand, demand_volatility, lead_time_days, num_days, num_simulations):
+    if initial_inventory < 0 or avg_daily_demand < 0 or demand_volatility < 0 or lead_time_days <= 0 or num_days <= 0 or num_simulations <= 0:
+        return None, None, None, None
     inventory_sims = np.zeros((num_days + 1, num_simulations))
     inventory_sims[0, :] = initial_inventory
     stockout_simulations = np.zeros(num_simulations)
@@ -85,6 +89,8 @@ def run_inventory_simulation(initial_inventory, avg_daily_demand, demand_volatil
     return inventory_sims.tolist(), prob_of_stockout, avg_final_inventory, confidence_interval_90
 
 def analyze_results(simulations, target_price, initial_price):
+    if simulations is None or len(simulations) == 0:
+        return None, None, None, None, None, None, None, None
     final_prices = simulations[-1, :]
     avg_final_price = np.mean(final_prices)
     best_case_price = np.max(final_prices)
@@ -122,90 +128,102 @@ def inventory_simulation_page():
 
 @app.route('/simulate', methods=['POST'])
 def simulate():
-    data = request.get_json()
-    initial_price = float(data['initial_price'])
-    annual_volatility = float(data['volatility']) / 100
-    daily_volatility = annual_volatility / math.sqrt(252)
-    num_days = int(data['num_days'])
-    num_simulations = int(data['num_simulations'])
-    target_price = float(data['target_price']) if data.get('target_price') else None
-
-    simulations = run_monte_carlo(initial_price, daily_volatility, num_days, num_simulations)
-    avg_final_price, best_case, worst_case, probability, final_prices, prob_of_loss, ci_90, var_95 = analyze_results(
-        simulations, target_price, initial_price
-    )
-
     try:
-        conn, cursor = get_db_connection()
-        if conn is None:
-            raise Exception("Database not connected")
+        data = request.get_json()
+        initial_price = float(data['initial_price'])
+        annual_volatility = float(data['volatility']) / 100
+        daily_volatility = annual_volatility / math.sqrt(252)
+        num_days = int(data['num_days'])
+        num_simulations = int(data['num_simulations'])
+        target_price = float(data['target_price']) if data.get('target_price') else None
 
-        sql = """INSERT INTO stock_simulations 
-                 (initial_price, annual_volatility, num_days, num_simulations, target_price, avg_final_price, 
-                  prob_of_loss, confidence_interval_lower, confidence_interval_upper, value_at_risk) 
-                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
-        val = (
-            initial_price, annual_volatility * 100, num_days, num_simulations, target_price, 
-            avg_final_price, prob_of_loss, ci_90['lower'], ci_90['upper'], var_95
+        simulations = run_monte_carlo(initial_price, daily_volatility, num_days, num_simulations)
+        avg_final_price, best_case, worst_case, probability, final_prices, prob_of_loss, ci_90, var_95 = analyze_results(
+            simulations, target_price, initial_price
         )
-        cursor.execute(sql, val)
-        conn.commit()
-        cursor.close()
-        conn.close()
-    except Exception as e:
-        print(f"❌ Database insert error: {e}")
 
-    return jsonify({
-        'simulations': simulations.tolist(),
-        'avg_final_price': avg_final_price,
-        'best_case_price': best_case,
-        'worst_case_price': worst_case,
-        'probability': probability,
-        'prob_of_loss': prob_of_loss,
-        'confidence_interval_90': ci_90,
-        'value_at_risk_95': var_95
-    })
+        if simulations is None:
+            return jsonify({'error': 'Invalid input for simulation.'}), 400
+
+        try:
+            conn, cursor = get_db_connection()
+            if conn is None:
+                raise Exception("Database not connected")
+
+            sql = """INSERT INTO stock_simulations 
+                     (initial_price, annual_volatility, num_days, num_simulations, target_price, avg_final_price, 
+                      prob_of_loss, confidence_interval_lower, confidence_interval_upper, value_at_risk) 
+                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+            val = (
+                initial_price, annual_volatility * 100, num_days, num_simulations, target_price, 
+                avg_final_price, prob_of_loss, ci_90['lower'], ci_90['upper'], var_95
+            )
+            cursor.execute(sql, val)
+            conn.commit()
+            cursor.close()
+            conn.close()
+        except Exception as e:
+            print(f"❌ Database insert error: {e}")
+
+        return jsonify({
+            'simulations': simulations.tolist(),
+            'avg_final_price': avg_final_price,
+            'best_case_price': best_case,
+            'worst_case_price': worst_case,
+            'probability': probability,
+            'prob_of_loss': prob_of_loss,
+            'confidence_interval_90': ci_90,
+            'value_at_risk_95': var_95
+        })
+    except (ValueError, KeyError) as e:
+        return jsonify({'error': f'Invalid input: {e}'}), 400
 
 @app.route('/simulate_inventory', methods=['POST'])
 def simulate_inventory():
-    data = request.get_json()
-    initial_inventory = int(data['initial_inventory'])
-    avg_daily_demand = int(data['avg_daily_demand'])
-    demand_volatility = float(data['demand_volatility'])
-    lead_time_days = int(data['lead_time_days'])
-    num_days = int(data['num_days'])
-    num_simulations = int(data['num_simulations'])
-
-    inventory_sims, prob_stockout, avg_final, ci_90 = run_inventory_simulation(
-        initial_inventory, avg_daily_demand, demand_volatility, lead_time_days, num_days, num_simulations
-    )
-
     try:
-        conn, cursor = get_db_connection()
-        if conn is None:
-            raise Exception("Database not connected")
+        data = request.get_json()
+        initial_inventory = int(data['initial_inventory'])
+        avg_daily_demand = int(data['avg_daily_demand'])
+        demand_volatility = float(data['demand_volatility'])
+        lead_time_days = int(data['lead_time_days'])
+        num_days = int(data['num_days'])
+        num_simulations = int(data['num_simulations'])
 
-        sql = """INSERT INTO inventory_simulations 
-                 (initial_inventory, avg_daily_demand, demand_volatility, lead_time_days, num_days, num_simulations, 
-                  prob_of_stockout, avg_final_inventory, confidence_interval_lower, confidence_interval_upper) 
-                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
-        val = (
-            initial_inventory, avg_daily_demand, demand_volatility, lead_time_days, num_days, num_simulations, 
-            prob_stockout, avg_final, ci_90['lower'], ci_90['upper']
+        inventory_sims, prob_stockout, avg_final, ci_90 = run_inventory_simulation(
+            initial_inventory, avg_daily_demand, demand_volatility, lead_time_days, num_days, num_simulations
         )
-        cursor.execute(sql, val)
-        conn.commit()
-        cursor.close()
-        conn.close()
-    except Exception as e:
-        print(f"❌ Database insert error: {e}")
 
-    return jsonify({
-        'inventory_simulations': inventory_sims,
-        'prob_of_stockout': prob_stockout,
-        'avg_final_inventory': avg_final,
-        'confidence_interval_90': ci_90
-    })
+        if inventory_sims is None:
+            return jsonify({'error': 'Invalid input for simulation.'}), 400
+
+        try:
+            conn, cursor = get_db_connection()
+            if conn is None:
+                raise Exception("Database not connected")
+
+            sql = """INSERT INTO inventory_simulations 
+                     (initial_inventory, avg_daily_demand, demand_volatility, lead_time_days, num_days, num_simulations, 
+                      prob_of_stockout, avg_final_inventory, confidence_interval_lower, confidence_interval_upper) 
+                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+            val = (
+                initial_inventory, avg_daily_demand, demand_volatility, lead_time_days, num_days, num_simulations, 
+                prob_stockout, avg_final, ci_90['lower'], ci_90['upper']
+            )
+            cursor.execute(sql, val)
+            conn.commit()
+            cursor.close()
+            conn.close()
+        except Exception as e:
+            print(f"❌ Database insert error: {e}")
+
+        return jsonify({
+            'inventory_simulations': inventory_sims,
+            'prob_of_stockout': prob_stockout,
+            'avg_final_inventory': avg_final,
+            'confidence_interval_90': ci_90
+        })
+    except (ValueError, KeyError) as e:
+        return jsonify({'error': f'Invalid input: {e}'}), 400
 
 @app.route('/admin', methods=['GET', 'POST'])
 def admin():
@@ -222,6 +240,11 @@ def admin():
     
     # If GET request or failed login, show the login page
     return render_template('admin_login.html')
+
+@app.route('/admin/logout')
+def admin_logout():
+    session.pop('logged_in', None)
+    return redirect(url_for('admin'))
 
 
 @app.route('/admin/dashboard')
@@ -262,36 +285,45 @@ def real_stocks():
 @app.route('/real-stocks/<symbol>')
 @cache.cached(timeout=1800)
 def get_stock_price(symbol):
-    stock = yf.Ticker(symbol)
-    price = stock.history(period='1d')['Close'].iloc[0]
-    return jsonify({'price': price})
+    try:
+        stock = yf.Ticker(symbol)
+        price = stock.history(period='1d')['Close'].iloc[0]
+        return jsonify({'price': price})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/simulate_real_stock/<symbol>')
 def simulate_real_stock(symbol):
-    stock = yf.Ticker(symbol)
-    hist = stock.history(period="6mo")
-    
-    # Calculate daily returns and volatility
-    hist['returns'] = hist['Close'].pct_change()
-    daily_volatility = hist['returns'].std()
-    
-    initial_price = hist['Close'].iloc[-1]
-    num_days = 30
-    num_simulations = 1000
-    
-    simulations = run_monte_carlo(initial_price, daily_volatility, num_days, num_simulations)
-    avg_final_price, best_case, worst_case, _, _, prob_of_loss, ci_90, _ = analyze_results(simulations, None, initial_price)
-    
-    risk_level = get_risk_level(prob_of_loss, daily_volatility)
+    try:
+        stock = yf.Ticker(symbol)
+        hist = stock.history(period="6mo")
 
-    return jsonify({
-        'current_price': initial_price,
-        'confidence_range': ci_90,
-        'prob_of_loss': prob_of_loss,
-        'risk_level': risk_level,
-        'simulations': simulations.tolist(),
-        'historical_data': hist['Close'].tolist()
-    })
+        if hist.empty:
+            return jsonify({'error': 'Could not retrieve historical data for the stock.'}), 404
+        
+        # Calculate daily returns and volatility
+        hist['returns'] = hist['Close'].pct_change()
+        daily_volatility = hist['returns'].std()
+        
+        initial_price = hist['Close'].iloc[-1]
+        num_days = 30
+        num_simulations = 1000
+        
+        simulations = run_monte_carlo(initial_price, daily_volatility, num_days, num_simulations)
+        avg_final_price, best_case, worst_case, _, _, prob_of_loss, ci_90, _ = analyze_results(simulations, None, initial_price)
+        
+        risk_level = get_risk_level(prob_of_loss, daily_volatility)
+
+        return jsonify({
+            'current_price': initial_price,
+            'confidence_range': ci_90,
+            'prob_of_loss': prob_of_loss,
+            'risk_level': risk_level,
+            'simulations': simulations.tolist(),
+            'historical_data': hist['Close'].tolist()
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 def get_risk_level(prob_of_loss, volatility):
     if prob_of_loss > 60 or volatility > 0.03:

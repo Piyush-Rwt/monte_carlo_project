@@ -46,38 +46,35 @@ def get_db_connection():
 
 # --- Monte Carlo Simulation Functions ---
 def run_monte_carlo(initial_price, volatility, num_days, num_simulations):
-    if initial_price <= 0 or volatility <= 0 or num_days <= 0 or num_simulations <= 0:
+    if initial_price <= 0 or volatility < 0 or num_days <= 0 or num_simulations <= 0:
         return None
-    simulations = np.zeros((num_days + 1, num_simulations))
-    simulations[0, :] = initial_price
-    for i in range(num_simulations):
-        for j in range(1, num_days + 1):
-            random_shock = np.random.normal(0, volatility)
-            simulations[j, i] = simulations[j - 1, i] * (1 + random_shock)
-    return simulations
+    # Vectorized approach
+    daily_returns = np.random.normal(0, volatility, (num_days, num_simulations))
+    price_paths = np.zeros((num_days + 1, num_simulations))
+    price_paths[0] = initial_price
+    price_paths[1:] = initial_price * np.cumprod(1 + daily_returns, axis=0)
+    return price_paths
 
 def run_inventory_simulation(initial_inventory, avg_daily_demand, demand_volatility, lead_time_days, num_days, num_simulations):
     if initial_inventory < 0 or avg_daily_demand < 0 or demand_volatility < 0 or lead_time_days <= 0 or num_days <= 0 or num_simulations <= 0:
         return None, None, None, None
+    
+    daily_demands = np.random.normal(avg_daily_demand, demand_volatility, (num_days, num_simulations))
+    
     inventory_sims = np.zeros((num_days + 1, num_simulations))
     inventory_sims[0, :] = initial_inventory
+    
     stockout_simulations = np.zeros(num_simulations)
 
-    for i in range(num_simulations):
-        stockout_event = False
-        for j in range(1, num_days + 1):
-            daily_demand = np.random.normal(avg_daily_demand, demand_volatility)
-            if inventory_sims[j-1, i] > daily_demand:
-                inventory_sims[j, i] = inventory_sims[j-1, i] - daily_demand
-            else:
-                inventory_sims[j, i] = 0
-                if not stockout_event:
-                    stockout_simulations[i] = 1
-                    stockout_event = True
-            
-            # Replenishment
-            if j % lead_time_days == 0:
-                inventory_sims[j, i] += avg_daily_demand * lead_time_days
+    for j in range(1, num_days + 1):
+        inventory_sims[j, :] = inventory_sims[j-1, :] - daily_demands[j-1, :]
+        inventory_sims[j, :][inventory_sims[j, :] < 0] = 0
+        
+        stockout_mask = (inventory_sims[j, :] == 0) & (stockout_simulations == 0)
+        stockout_simulations[stockout_mask] = 1
+        
+        if j % lead_time_days == 0:
+            inventory_sims[j, :] += avg_daily_demand * lead_time_days
 
     prob_of_stockout = np.sum(stockout_simulations) / num_simulations * 100
     avg_final_inventory = np.mean(inventory_sims[-1, :])

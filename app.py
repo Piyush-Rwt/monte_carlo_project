@@ -2,7 +2,9 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 import numpy as np
 import math
 import os
-import mysql.connector
+import psycopg2
+import psycopg2.extras # For dictionary cursor
+from urllib.parse import urlparse
 from dotenv import load_dotenv
 
 # Load environment variables (optional for local testing)
@@ -14,14 +16,22 @@ app.secret_key = os.getenv('SECRET_KEY', 'default_secret')
 # --- Database Connection Helper ---
 def get_db_connection():
     try:
-        conn = mysql.connector.connect(
-            host=os.getenv("MYSQL_HOST"),
-            user=os.getenv("MYSQL_USER"),
-            password=os.getenv("MYSQL_PASSWORD"),
-            port=os.getenv("MYSQL_PORT"),
-            database=os.getenv("MYSQL_DB")
+        # Parse the database URL from the environment variable
+        db_url = os.getenv("DATABASE_URL")
+        if not db_url:
+            raise Exception("DATABASE_URL environment variable not set")
+            
+        result = urlparse(db_url)
+        
+        conn = psycopg2.connect(
+            dbname=result.path[1:],
+            user=result.username,
+            password=result.password,
+            host=result.hostname,
+            port=result.port
         )
-        cursor = conn.cursor(dictionary=True)
+        # Use a cursor factory that returns dictionaries
+        cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
         return conn, cursor
     except Exception as e:
         print(f"❌ Database connection failed: {e}")
@@ -163,7 +173,7 @@ def test_db():
         result = cursor.fetchone()
         cursor.close()
         conn.close()
-        return jsonify({"status": "✅ Connected to MySQL", "time": result['current_time']})
+        return jsonify({"status": "✅ Connected to PostgreSQL", "time": result['current_time']})
     except Exception as e:
         return jsonify({"status": "❌ Failed", "error": str(e)})
 

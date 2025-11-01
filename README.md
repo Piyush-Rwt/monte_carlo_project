@@ -6,6 +6,7 @@ This is a Flask web application that performs Monte Carlo simulations for stock 
 
 - **Stock Simulation:** Simulates future stock prices based on initial price, volatility, and time.
 - **Inventory Simulation:** Simulates inventory levels based on demand, volatility, and lead time.
+- **Real-Time Stock Risk Dashboard:** Perform Monte Carlo simulations on real stock data fetched from Yahoo Finance.
 - **Admin Panel:** View and manage simulation results, protected by a password.
 
 ---

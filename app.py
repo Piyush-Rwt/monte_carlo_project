@@ -38,6 +38,7 @@ def get_db_connection():
         )
         # Use a cursor factory that returns dictionaries
         cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        print("✅ Connected to:", result.hostname, result.path[1:])
         return conn, cursor
     except Exception as e:
         print(f"❌ Database connection failed: {e}")
@@ -156,7 +157,7 @@ def simulate():
                      VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
             val = (
                 initial_price, annual_volatility * 100, num_days, num_simulations, target_price, 
-                avg_final_price, prob_of_loss, ci_90['lower'], ci_90['upper'], var_95
+                float(avg_final_price), float(prob_of_loss), float(ci_90['lower']), float(ci_90['upper']), float(var_95)
             )
             cursor.execute(sql, val)
             conn.commit()
@@ -208,7 +209,7 @@ def simulate_inventory():
                      VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
             val = (
                 initial_inventory, avg_daily_demand, demand_volatility, lead_time_days, num_days, num_simulations, 
-                prob_stockout, avg_final, ci_90['lower'], ci_90['upper']
+                float(prob_stockout), float(avg_final), float(ci_90['lower']), float(ci_90['upper'])
             )
             cursor.execute(sql, val)
             conn.commit()
